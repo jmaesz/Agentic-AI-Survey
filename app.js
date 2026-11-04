@@ -1,5 +1,6 @@
-const $ = (selector) => document.querySelector(selector);
+﻿const $ = (selector) => document.querySelector(selector);
 const questions = [
+  { key: "period", title: "Travel period" },
   { key: "wait_minutes", title: "Reasonable and acceptable bus waiting time (minutes)", numeric: true },
 ];
 let responses = [];
@@ -22,7 +23,7 @@ async function checkStatus() {
   }
 }
 
-function setProgress(done, total, message = "Preparing agents…") {
+function setProgress(done, total, message = "Preparing agentsâ€¦") {
   $("#progress").max = total;
   $("#progress").value = done;
   $("#progress-count").textContent = `${done} / ${total}`;
@@ -31,21 +32,23 @@ function setProgress(done, total, message = "Preparing agents…") {
 
 async function runSurvey() {
   const count = Number($("#agent-count").value);
+  const period = $("#service-period").value;
   responses = [];
   $("#results").hidden = true;
   $("#progress-wrap").hidden = false;
   $("#run-button").hidden = true;
   $("#stop-button").hidden = false;
   $("#agent-count").disabled = true;
+  $("#service-period").disabled = true;
   controller = new AbortController();
   let completed = 0, retryCount = 0, fatalError = "";
-  setProgress(0, count, `Starting · up to ${requestsPerMinute} OpenAI requests per minute`);
+  setProgress(0, count, `Starting Â· up to ${requestsPerMinute} OpenAI requests per minute`);
   while (completed < count && !controller.signal.aborted) {
     const index = completed;
     let attempt = 0;
     while (!controller.signal.aborted) {
       try {
-        const res = await fetch("/api/respond", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentIndex: index }), signal: controller.signal });
+        const res = await fetch("/api/respond", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentIndex: index, period }), signal: controller.signal });
         const payload = await res.json();
         if (!res.ok) {
           const error = new Error(payload.error || `Request failed (${res.status})`);
@@ -54,7 +57,7 @@ async function runSurvey() {
         }
         responses[index] = { agent: index + 1, ...payload.response };
         completed++;
-        setProgress(completed, count, `Agent ${completed} completed · continuing until all ${count} responses are collected`);
+        setProgress(completed, count, `Agent ${completed} completed Â· continuing until all ${count} responses are collected`);
         break;
       } catch (error) {
         if (error.name === "AbortError" || controller.signal.aborted) break;
@@ -66,7 +69,7 @@ async function runSurvey() {
         attempt++;
         retryCount++;
         const delay = Math.min(60_000, 2_000 * (2 ** Math.min(attempt - 1, 5)));
-        setProgress(completed, count, `Temporary API issue · retrying agent ${index + 1} (attempt ${attempt}) in ${Math.ceil(delay / 1000)}s`);
+        setProgress(completed, count, `Temporary API issue Â· retrying agent ${index + 1} (attempt ${attempt}) in ${Math.ceil(delay / 1000)}s`);
         await new Promise((resolve) => {
           if (controller.signal.aborted) return resolve();
           const timer = setTimeout(done, delay);
@@ -81,9 +84,10 @@ async function runSurvey() {
   $("#stop-button").hidden = true;
   $("#run-button").hidden = false;
   $("#agent-count").disabled = false;
+  $("#service-period").disabled = false;
   if (fatalError) $("#progress-text").textContent = `Stopped: ${fatalError}`;
-  else if (controller.signal.aborted) $("#progress-text").textContent = `Stopped by user · ${completed} responses collected`;
-  else $("#progress-text").textContent = `Complete · ${completed} responses collected${retryCount ? ` after ${retryCount} retries` : ""}`;
+  else if (controller.signal.aborted) $("#progress-text").textContent = `Stopped by user Â· ${completed} responses collected`;
+  else $("#progress-text").textContent = `Complete Â· ${completed} responses collected${retryCount ? ` after ${retryCount} retries` : ""}`;
   if (successful.length) renderResults(successful, count, fatalError ? `Stopped early: ${fatalError}` : controller.signal.aborted ? "Run stopped by user." : "");
 }
 
@@ -95,7 +99,7 @@ function renderResults(rows, requested, runNote = "") {
   const sorted = [...waits].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   const median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-  $("#wait-stat").innerHTML = `<div><div class="eyebrow" style="color:#d4e2d6">BUS WAITING TIME</div><div class="big">${avg.toFixed(1)} min average acceptable wait</div><div class="caption">Across ${waits.length} successful agent responses</div></div><div class="small">Median ${median.toFixed(1)} min<br>Range ${Math.min(...waits)}–${Math.max(...waits)} min</div>`;
+  $("#wait-stat").innerHTML = `<div><div class="eyebrow" style="color:#d4e2d6">BUS WAITING TIME</div><div class="big">${avg.toFixed(1)} min average acceptable wait</div><div class="caption">Across ${waits.length} successful agent responses</div></div><div class="small">Median ${median.toFixed(1)} min<br>Range ${Math.min(...waits)}â€“${Math.max(...waits)} min</div>`;
   $("#charts").innerHTML = makeWaitChart(waits);
   renderTable(rows);
 }
@@ -127,7 +131,7 @@ function makeWaitChart(waits) {
     const valueLabel = item.count ? `<text x="${center}" y="${valueY}" text-anchor="middle" class="chart-value-label">${item.pct.toFixed(0)}%</text>` : "";
     return `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${colors[index % colors.length]}"/>${valueLabel}<text x="${center}" y="${bottomY + 25}" text-anchor="middle" class="chart-category-label">${label}</text><text x="${center}" y="${bottomY + 47}" text-anchor="middle" class="chart-count-label">${item.count}</text>`;
   }).join("");
-  return `<article class="chart wait-chart"><h3>Responses by exact waiting time</h3><p class="chart-caption">One-minute intervals · labels show percentage and response count</p><div class="chart-scroll"><svg viewBox="0 0 ${width} ${height}" style="width:${width}px;max-width:none" role="img" aria-label="Vertical bar chart showing one-minute waiting-time intervals from ${minimum} to ${maximum} minutes">${grid}<line x1="${left}" y1="${bottomY}" x2="${width - right}" y2="${bottomY}" class="chart-axis"/>${bars}</svg></div></article>`;
+  return `<article class="chart wait-chart"><h3>Responses by exact waiting time</h3><p class="chart-caption">One-minute intervals Â· labels show percentage and response count</p><div class="chart-scroll"><svg viewBox="0 0 ${width} ${height}" style="width:${width}px;max-width:none" role="img" aria-label="Vertical bar chart showing one-minute waiting-time intervals from ${minimum} to ${maximum} minutes">${grid}<line x1="${left}" y1="${bottomY}" x2="${width - right}" y2="${bottomY}" class="chart-axis"/>${bars}</svg></div></article>`;
 }
 
 function renderTable(rows) {
@@ -155,3 +159,5 @@ $("#download-csv").addEventListener("click", () => {
   download("agentic-ai-survey-responses.csv", rows.map((row) => row.map(csvEscape).join(",")).join("\n"), "text/csv");
 });
 checkStatus();
+
+

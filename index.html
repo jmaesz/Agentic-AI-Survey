@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -10,15 +10,15 @@
 <body>
   <main class="shell">
     <header class="hero">
-      <p class="eyebrow">SINGAPORE · PUBLIC TRANSPORT</p>
+      <p class="eyebrow">SINGAPORE Â· PUBLIC TRANSPORT</p>
       <h1>Commuter<br><span>Waiting-Time Survey</span></h1>
       <p class="intro">Explore how a group of hypothetical commuters might answer one question about acceptable bus waiting time. Each AI agent submits one response.</p>
       <p class="notice"><strong>Simulated responses:</strong> these are AI-generated examples, not answers from real people or representative research.</p>
     </header>
     <section class="panel setup" aria-labelledby="setup-title">
       <div><p class="eyebrow">01 / SET UP</p><h2 id="setup-title">How many agents?</h2><p class="muted">Each agent submits one answer. Requests are paced, and temporary API errors are retried.</p></div>
-      <div class="controls"><label for="agent-count">Number of agents</label><div class="control-row"><select id="agent-count" aria-label="Number of agents"><option value="1">1 agent · preview</option><option value="10">10 agents</option><option value="50" selected>50 agents</option><option value="100">100 agents</option><option value="200">200 agents</option></select><button id="run-button" class="primary">Run survey <span aria-hidden="true">↗</span></button><button id="stop-button" class="secondary" hidden>Stop</button></div><p id="api-status" class="hint">Checking OpenAI API setup…</p></div>
-      <div id="progress-wrap" class="progress-wrap" hidden><div class="progress-label"><span id="progress-text">Preparing agents…</span><span id="progress-count">0 / 0</span></div><progress id="progress" max="100" value="0"></progress></div>
+      <div class="controls"><label for="service-period">Travel period</label><select id="service-period" aria-label="Travel period"><option value="off_peak">Off-peak</option><option value="am_peak">AM peak</option><option value="pm_peak">PM peak</option></select><label for="agent-count" style="margin-top:12px">Number of agents</label><div class="control-row"><select id="agent-count" aria-label="Number of agents"><option value="1">1 agent Â· preview</option><option value="10">10 agents</option><option value="50" selected>50 agents</option><option value="100">100 agents</option><option value="200">200 agents</option></select><button id="run-button" class="primary">Run survey <span aria-hidden="true">â†—</span></button><button id="stop-button" class="secondary" hidden>Stop</button></div><p id="api-status" class="hint">Checking OpenAI API setupâ€¦</p></div>
+      <div id="progress-wrap" class="progress-wrap" hidden><div class="progress-label"><span id="progress-text">Preparing agentsâ€¦</span><span id="progress-count">0 / 0</span></div><progress id="progress" max="100" value="0"></progress></div>
     </section>
     <section id="results" class="results" hidden aria-live="polite">
       <div class="results-heading"><div><p class="eyebrow">02 / RESULTS</p><h2>What the agents said</h2><p id="result-summary" class="muted"></p></div><div class="export-actions"><button id="download-csv" class="secondary">Download CSV</button><button id="download-json" class="secondary">Download JSON</button></div></div>
@@ -28,7 +28,9 @@
     <section class="survey panel" aria-labelledby="survey-title">
       <p class="eyebrow">THE QUESTION</p><h2 id="survey-title">Bus 96 waiting time</h2>
       <div class="question-list single-question">
-        <article class="question featured"><span>01</span><p>Imagine you are a Singaporean commuter taking Bus 96 between Clementi Bus Interchange and NUS. As a student or commuter with a schedule to follow, you value punctuality and would prefer to minimise unnecessary waiting time, especially when travelling to classes. While extremely short waiting times (e.g. 1–2 minutes) may be unrealistic due to practical bus operational constraints, you would still expect a reasonably frequent bus service. What is the waiting time you would consider comfortable and acceptable?</p></article>
+        <article class="question featured"><span>01</span><p><strong>Off-peak:</strong> Imagine you are a Singaporean commuter taking Bus 96 between Clementi Bus Interchange and NUS outside the morning and evening peak periods. What is the longest waiting time you would consider comfortable and acceptable?</p></article>
+        <article class="question"><span>02</span><p><strong>AM peak:</strong> Imagine you are a Singaporean commuter taking Bus 96 from Clementi Bus Interchange to NUS during the morning peak period. You need to arrive on time for class or work. What is the longest waiting time you would consider comfortable and acceptable?</p></article>
+        <article class="question"><span>03</span><p><strong>PM peak:</strong> Imagine you are a Singaporean commuter taking Bus 96 from NUS to Clementi Bus Interchange during the evening peak period. You want to get home without waiting too long. What is the longest waiting time you would consider comfortable and acceptable?</p></article>
       </div>
     </section>
     <footer>OpenAI-generated responses are synthetic. Use them to explore the interface and possible response patterns, not to make claims about commuters.</footer>
@@ -36,3 +38,5 @@
   <script src="app.js" defer></script>
 </body>
 </html>
+
+

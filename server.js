@@ -1,4 +1,4 @@
-const http = require("node:http");
+﻿const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -57,10 +57,11 @@ function sleep(ms, signal) {
   });
 }
 
-async function generateResponse(agentIndex, signal) {
+async function generateResponse(agentIndex, period, signal) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw Object.assign(new Error("Server is missing OPENAI_API_KEY"), { retryable: false, status: 503 });
-  const prompt = `Generate one SYNTHETIC answer from a hypothetical Singaporean commuter. This is not a real person's response or empirical data. Answer this survey question: "Imagine you are a Singaporean commuter taking Bus 96 between Clementi Bus Interchange and NUS. As a student or commuter with a schedule to follow, you value punctuality and would prefer to minimise unnecessary waiting time, especially when travelling to classes. While extremely short waiting times (e.g. 1–2 minutes) may be unrealistic due to practical bus operational constraints, you would still expect a reasonably frequent bus service. What is the waiting time you would consider comfortable and acceptable?" Return only a JSON object with one key, wait_minutes, containing a whole number from 3 to 20. Avoid unrealistic 1- or 2-minute answers and waits over 20 minutes. Vary the answer naturally across hypothetical commuters. This is agent ${agentIndex + 1}; make this answer independently plausible.`;
+  const periodDetails = { off_peak: { label: "Off-peak", context: "outside the morning and evening peak periods, travelling between Clementi Bus Interchange and NUS" }, am_peak: { label: "AM peak", context: "during the morning peak period, travelling from Clementi Bus Interchange to NUS for class or work" }, pm_peak: { label: "PM peak", context: "during the evening peak period, travelling from NUS to Clementi Bus Interchange to go home" } }[period];
+  const prompt = `Generate one SYNTHETIC answer from a hypothetical Singaporean commuter. This is not a real person's response or empirical data. Travel period: ${periodDetails.label}. The commuter is ${periodDetails.context}. Answer: What is the longest bus waiting time you would consider comfortable and acceptable? Return only a JSON object with one key, wait_minutes, containing a whole number from 3 to 20. Avoid unrealistic 1- or 2-minute answers and waits over 20 minutes. Vary the answer naturally across hypothetical commuters. This is agent ${agentIndex + 1}; make this answer independently plausible.`;
   const body = {
     model: MODEL,
     input: [
@@ -114,16 +115,16 @@ async function generateResponse(agentIndex, signal) {
   } catch (error) {
     throw Object.assign(new Error(error.message || "OpenAI response was invalid"), { retryable: true, status: 502 });
   }
-  return answer;
+  return { ...answer, period: periodDetails.label };
 }
 
-function enqueueApiResponse(agentIndex, signal) {
+function enqueueApiResponse(agentIndex, period, signal) {
   const task = apiQueue.then(async () => {
     const wait = Math.max(0, MIN_REQUEST_INTERVAL_MS - (Date.now() - lastApiRequestAt));
     if (wait) await sleep(wait, signal);
     if (signal.aborted) throw new Error("Request cancelled");
     lastApiRequestAt = Date.now();
-    return generateResponse(agentIndex, signal);
+    return generateResponse(agentIndex, period, signal);
   });
   apiQueue = task.catch(() => {});
   return task;
@@ -138,7 +139,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const data = await readBody(req);
       if (!Number.isInteger(data.agentIndex) || data.agentIndex < 0 || data.agentIndex >= 200) return send(res, 400, { error: "agentIndex must be from 0 to 199" });
-      return send(res, 200, { response: await enqueueApiResponse(data.agentIndex, controller.signal) });
+      const period = data.period || "off_peak";
+      if (!["off_peak", "am_peak", "pm_peak"].includes(period)) return send(res, 400, { error: "period must be off_peak, am_peak, or pm_peak" });
+      return send(res, 200, { response: await enqueueApiResponse(data.agentIndex, period, controller.signal) });
     } catch (error) {
       if (controller.signal.aborted) return;
       return send(res, error.status || 502, { error: error.message, retryable: Boolean(error.retryable) });
@@ -157,3 +160,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => console.log(`Survey app ready at http://127.0.0.1:${PORT}`));
+
+
+
